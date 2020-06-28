@@ -1,6 +1,8 @@
-from qutip import Qobj
+from qutip import *
 import numpy as np
 
 ## test
-r = np.random.rand(4, 4)
-print(Qobj(r))
+A = coherent(5, 3)
+print(A)
+A = charge(-5, 5)
+print(A)
