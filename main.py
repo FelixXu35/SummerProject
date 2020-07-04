@@ -17,8 +17,8 @@ from qutip import *
 from qutip.piqs import *
 
 ## Defination
-n_tls = 12 # the number of twp-level particles
-n_phot = 30 # the number of photons
+n_tls = 1e3 # the number of twp-level particles
+n_phot = 3e3 # the number of photons
 Sz = 0.8 * n_tls # initial inversion
 Kc = 2 * sc.pi * 0.18 # the cavity mode decay rate (MHz)
 Ks = 2 * sc.pi * 0.11 # the spin dephasing rate (MHz)
@@ -28,15 +28,13 @@ ws = 1.45 * 1e3 # the spin traqnsition frequency (MHz)
 
 ## Define the collective spin operators
 N = n_tls
-[jx, jy, jz] = jspin(N) 
-jp = jspin(N, "+")
+[jx, jy, jz] = jspin(1) 
+jp = jspin(1, "+")
 jm = jp.dag()
-jp_tilde = jp / np.sqrt(N) # normalized raising operator
-jm_tilde = jm / np.sqrt(N) # normalized lowering operator
 
 ## TLS parameters
-system = Dicke(N)
-system.hamiltonian = 0.5 * ws * jz # the Hamiltonian of two-level system
+system = Dicke(2)
+system.hamiltonian = ws * jz # the Hamiltonian of two-level system (jz incloud a 1/2)
 system.dephasing = Ks
 D_tls = system.liouvillian() # the liouvillian of spin dephasing
 

@@ -1,9 +1,8 @@
 #from qutip import *
-import qutip as qt
+from qutip import *
 import numpy as np
+from qutip.piqs import *
 
 ## test
 #A = coherent_dm(5, 9)
-A = qt.coherent_dm(5, 3)
-A = A.ptrace()
-print(A)
+print(jspin(1))
