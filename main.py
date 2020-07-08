@@ -17,69 +17,76 @@ from qutip import *
 from qutip.piqs import *
 
 ## Defination
-n_tls = 1e3 # the number of twp-level particles
-n_phot = 3e3 # the number of photons
-Sz = 0.8 * n_tls # initial inversion
+dim_tls = 100 # the number of twp-level particles
+dim_lit = int(300) # the dimension of the light field
+num_steps = 50 # the number of steps will be used in evolution
 Kc = 2 * sc.pi * 0.18 # the cavity mode decay rate (MHz)
 Ks = 2 * sc.pi * 0.11 # the spin dephasing rate (MHz)
-ge = 2 * sc.pi * 1.1 # the ensemble spin-photon coupling strength (MHz)
+gs = 2 * sc.pi * 4.2e-8 # the single spin-photon coupling strength (MHz)
 wc = 1.45 * 1e3 # the cavity frequency (MHz)
 ws = 1.45 * 1e3 # the spin traqnsition frequency (MHz)
 
+## Initialization
+step_index = 0
+n_exc = [] # the number of atoms on the excited state
+n_phot = [] # the number of pjotons in the light field
+
 ## Define the collective spin operators
-N = n_tls
 [jx, jy, jz] = jspin(1) 
 jp = jspin(1, "+")
 jm = jp.dag()
+a = destroy(dim_lit)
 
-## TLS parameters
-system = Dicke(2)
-system.hamiltonian = ws * jz # the Hamiltonian of two-level system (jz incloud a 1/2)
-system.dephasing = Ks
-D_tls = system.liouvillian() # the liouvillian of spin dephasing
-
-## Interation parameters
-a = destroy(n_phot)
-h_int = ge * (tensor(jp_tilde, a) + tensor(jm_tilde, a.dag())) # the interaction Hamiltonian
-
-## photon parameters
-c_ops_phot = [np.sqrt(Kc) * a]
-D_phot = liouvillian(wc * a.dag() * a, c_ops_phot)
-
-## Indentity super-operators
-nds = num_dicke_states(n_tls) # the number of dicke states
-id_tls = to_super(qeye(nds))
-id_phot = to_super(qeye(n_phot))
-
-## Define the total liouvillian
-D_int = -1j* spre(h_int) + 1j* spost(h_int)
-D_tot = D_int + super_tensor(id_tls, D_phot) + super_tensor(D_tls, id_phot)
+## the initialization quantum state
+rho_tls = dicke(1, 0.5, 0.5)
+rho_phot = ket2dm(basis(dim_lit, 0))
+rho = tensor(rho_tls, rho_phot)
 
 ## Define operator in the total space
-nphot_tot = tensor(qeye(nds), a.dag()*a)
+nphot_tot = tensor(qeye(2), a.dag() * a) # number operator
+a_tot = tensor(qeye(2), a)
+jz_tot = tensor(jz, qeye(dim_lit))
+jp_tot = tensor(jp, qeye(dim_lit))
+jm_tot = tensor(jm, qeye(dim_lit))
 
 ## Time evolution
-rho_tls = excited(N)
-rho_phot = ket2dm(basis(n_phot, 0))
-rho0 = tensor(rho_tls, rho_phot)
-t = np.linspace(0, 10, 100)
-result = mesolve(D_tot, rho0, t, [], e_ops = [nphot_tot], options = Options(store_states=True, num_cpus=4))
-rhot_tot = result.states
-nphot_t = result.expect[0]
+t = np.linspace(0, 10, num_steps)
+step_length = t[1] - t[0]
 
-##
-label_size = 20
-rho_ss = steadystate(D_tot)
-nphot_ss = expect(rho_ss, nphot_tot)
+## The RK2 method, which is realized with a for loop
+for step_index in range(num_steps):
+    for step_index2 in range(2):
+        ## Initialization
+        rho_der = 0
+
+        ## The number of excited atoms
+        N = (np.trace(rho * jz_tot) + 0.5) * dim_tls 
+        print(N)
+        N = N.real
+
+        ## The Hamiltonian
+        H = wc * a_tot.dag() * a_tot + ws * jz_tot + np.sqrt(N) * gs * (jp_tot * a_tot + jm_tot * a_tot.dag())
+        rho_der -= 1j * commutator(H, rho)
+
+        ## Cavity decay
+        rho_der += Kc * (a_tot * rho * a_tot.dag() - 0.5 * a_tot.dag() * a_tot * rho - 0.5 * rho * a_tot.dag() * a_tot)
+
+        ## Spin dephasing
+        rho_der += Ks * (jz_tot * rho * jz_tot.dag() - 0.5 * jz_tot.dag() * jz_tot * rho - 0.5 * rho * jz_tot.dag() * jz_tot)
+        
+        if step_index2 == 0:
+            rho += rho_der * step_length # Predictor
+            rho_dash = rho - 0.5 * rho_der * step_length
+
+        if step_index2 == 1:
+            rho = rho_dash + 0.5 * rho_der * step_length # Corrector
+            P = np.trace(rho * nphot_tot)
+            P = P.real
+            n_phot.append(P)
+            n_exc.append(N)
 
 ## Visualization
-fig3 = plt.figure(3)
-plt.plot(t, nphot_t, 'k-', label='Time evolution')
-plt.plot(t, t*0 + nphot_ss, 'g--', label = 'Steady-state value')
-plt.title(r'Cavity photon population', fontsize = label_size)
-plt.xlabel(r'$t$', fontsize = label_size)
-plt.ylabel(r'$\langle a^\dagger a\rangle(t)$', fontsize = label_size)
-
-plt.legend(fontsize = label_size)
+fig = plt.figure(3)
+plt.plot(t, n_exc)
+plt.plot(t, n_phot)
 plt.show()
-plt.close()
