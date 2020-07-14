@@ -6,10 +6,9 @@ import scipy as sc
 
 ## test
 #A = coherent_dm(5, 9)
-rho = ket2dm(basis(2, 1))
-print(rho)
-sm = destroy(2)
-print((sm.dag() * sm * rho).tr())
+psi_tls = (np.sqrt(0.9)) * basis(2, 0) + (np.sqrt(0.1)) * basis(2, 1)
+rho_tls = ket2dm(psi_tls)
+print((sigmaz()))
 #col = np.linspace(1, 1e15, 1e15)
 #data = np.linspace(1, 1e15, 1e15)
 #c = sc.sparse.coo_matrix((data, (row, col)), shape=(1e15, 1e15))

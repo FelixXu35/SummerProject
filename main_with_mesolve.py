@@ -1,21 +1,23 @@
+
 ## Main.py
 # This file is a part of summer project.
-# This file is used to call all other functions and output result.
+# This file is used to test function "mesolve".
 # There is no input.
-# Written by Xiaotian Xu(Felix), 1st July 2020.
+# Written by Xiaotian Xu(Felix), 13th July 2020.
 
 ## Import packages
 import numpy as np
 import scipy.constants as sc
 import scipy.sparse as sp
+from scipy.fftpack import fft
 import matplotlib.pyplot as plt
 from qutip import *
 from qutip.piqs import *
 
 ## Defination
 dim_tls = 7e14# # the number of twp-level particles
-dim_lit = int(2) # the dimension of the light field
-num_steps = 1000 # the number of steps will be used in evolution
+dim_lit = int(10) # the dimension of the light field
+num_steps = 3000 # the number of steps will be used in evolution
 Kc = 2 * sc.pi * 0.18 # the cavity mode decay rate (MHz)
 Ks = 2 * sc.pi * 0.11 # the spin dephasing rate (MHz)
 ge = 2 * sc.pi * 1.1 # the single spin-photon coupling strength (MHz)
@@ -42,44 +44,42 @@ Sz = tensor(sigmaz(), qeye(dim_lit))
 Sp = tensor(sigmap(), qeye(dim_lit))
 Sm = tensor(sigmam(), qeye(dim_lit))
 
+# Identity super-operators
+nds = num_dicke_states(1)
+id_tls = to_super(qeye(nds))
+id_phot = to_super(qeye(dim_lit))
+
 ## Time evolution
 t = np.linspace(0, 10, num_steps)
 step_length = t[1] - t[0]
 
-## The RK2 method, which is realized with a for loop
-for step_index in range(num_steps):
-    for step_index2 in range(2):
+## The two-level systems
+system = Dicke(1)
+system.hamiltonian = 0.5 * ws * sigmaz()
+system.dephasing = Ks
+D_tls = system.liouvillian()
 
-        ## Procedure
-        print(step_index, '/', num_steps)
+## The photons
+c_ops_phot = [np.sqrt(Kc) * a]
+D_phot = liouvillian(wc * a.dag() * a , c_ops_phot)
 
-        ## Initialization
-        rho_der = 0
+## The interaction
+h_int = ge * tensor(sigmax(), a + a.dag()) # without RWA
+D_int = -1j* spre(h_int) + 1j* spost(h_int)
+D_tot = D_int + super_tensor(id_tls, D_phot) + super_tensor(D_tls, id_phot)
 
-        ## The Hamiltonian
-        H = wc * a_tot.dag() * a_tot + 0.5 * ws * Sz + 0.5 * ge * (Sp * a_tot + Sm * a_tot.dag()) # 0.5 is normalization factor
-        rho_der -= 1j * commutator(H, rho)
+## Time evolution
+result = mesolve(D_tot, rho, t, [], e_ops = [tensor(qeye(nds), a.dag() * a), tensor(sigmam(), a.dag()), 
+                                             tensor(sigmap() * sigmam(), qeye(dim_lit)), tensor(sigmaz(), qeye(dim_lit))], options = Options(store_states=True, num_cpus=4))
+n_phot = result.expect[0] * dim_tls # the number of pjotons in the light field
+spin_phot = result.expect[1] * dim_tls
+spin_spin = result.expect[2]
+inversion = result.expect[3]
 
-        ## Cavity decay
-        rho_der += Kc * (a_tot * rho * a_tot.dag() - 0.5 * a_tot.dag() * a_tot * rho - 0.5 * rho * a_tot.dag() * a_tot)
+freq_dist = abs(fft(n_phot))
 
-        ## Spin dephasing
-        rho_der += Ks * (Sz * rho * Sz.dag() - 0.5 * Sz.dag() * Sz * rho - 0.5 * rho * Sz.dag() * Sz)
-        
-        if step_index2 == 0:
-            rho += rho_der * step_length # Predictor
-            rho_dash = rho - 0.5 * rho_der * step_length
-
-        if step_index2 == 1:
-            rho = rho_dash + 0.5 * rho_der * step_length # Corrector
-
-            ## Calculation
-            rho0 = rho.ptrace(0)
-            rho1 = rho.ptrace(1)
-            n_phot.append(((rho1 * a.dag() * a).tr() * dim_tls).real)
-            spin_phot.append(((rho * tensor(sigmam(), a.dag())).tr() * dim_tls).real)
-            spin_spin.append(((rho0 * sigmap() * sigmam()).tr()).real)
-            inversion.append(((rho0 * sigmaz()).tr()).real)
+J = 0.5 * np.ones(num_steps)
+spin_spin = (J + inversion/2) * (J - inversion/2 + 1 / dim_tls)
 
 ## Visualization
 plt.figure(1)
@@ -94,4 +94,7 @@ plt.title('spin-spin correlation')
 plt.figure(4)
 plt.plot(t, inversion)
 plt.title('inversion')
+plt.figure(5)
+plt.plot(freq_dist)
+plt.title('fft')
 plt.show()
