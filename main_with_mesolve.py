@@ -23,6 +23,7 @@ Ks = 2 * sc.pi * 0.11 # the spin dephasing rate (MHz)
 ge = 2 * sc.pi * 1.1 # the single spin-photon coupling strength (MHz)
 wc = 2 * sc.pi * 1.45e3 # the cavity frequency (MHz)
 ws = 2 * sc.pi * 1.45e3 # the spin traqnsition frequency (MHz)
+gamma = 2 * sc.pi * 0.0177
 
 ## Initialization
 step_index = 0
@@ -56,7 +57,9 @@ step_length = t[1] - t[0]
 ## The two-level systems
 system = Dicke(1)
 system.hamiltonian = 0.5 * ws * sigmaz()
-system.dephasing = Ks
+system.collective_dephasing = Ks
+#system.collective_emission = gamma
+#system.collective_pumping = gamma
 D_tls = system.liouvillian()
 
 ## The photons
@@ -76,6 +79,13 @@ spin_phot = result.expect[1] * dim_tls
 spin_spin = result.expect[2]
 inversion = result.expect[3]
 
+## Steady states
+steady_tls = steadystate(D_tot)
+n_phot_ss = np.ones(num_steps) * expect(tensor(qeye(nds), a.dag() * a), steady_tls)
+spin_phot_ss = np.ones(num_steps) * expect(tensor(sigmam(), a.dag()), steady_tls)
+spin_spin_ss = np.ones(num_steps) * expect(tensor(sigmap() * sigmam(), qeye(dim_lit)), steady_tls)
+inversion_ss = np.ones(num_steps) * expect(tensor(sigmaz(), qeye(dim_lit)), steady_tls)
+
 freq_dist = abs(fft(n_phot))
 
 J = 0.5 * np.ones(num_steps)
@@ -84,15 +94,19 @@ spin_spin = (J + inversion/2) * (J - inversion/2 + 1 / dim_tls)
 ## Visualization
 plt.figure(1)
 plt.plot(t, n_phot)
+plt.plot(t, n_phot_ss)
 plt.title('the number of photons')
 plt.figure(2)
 plt.plot(t, spin_phot)
+plt.plot(t, spin_phot_ss)
 plt.title('spin-photon correlation')
 plt.figure(3)
 plt.plot(t, spin_spin)
+plt.plot(t, spin_spin_ss)
 plt.title('spin-spin correlation')
 plt.figure(4)
 plt.plot(t, inversion)
+plt.plot(t, inversion_ss)
 plt.title('inversion')
 plt.figure(5)
 plt.plot(freq_dist)

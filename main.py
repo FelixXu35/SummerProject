@@ -14,7 +14,7 @@ from qutip.piqs import *
 
 ## Defination
 dim_tls = 7e14# # the number of twp-level particles
-dim_lit = int(2) # the dimension of the light field
+dim_lit = int(10) # the dimension of the light field
 num_steps = 1000 # the number of steps will be used in evolution
 Kc = 2 * sc.pi * 0.18 # the cavity mode decay rate (MHz)
 Ks = 2 * sc.pi * 0.11 # the spin dephasing rate (MHz)
@@ -57,7 +57,7 @@ for step_index in range(num_steps):
         rho_der = 0
 
         ## The Hamiltonian
-        H = wc * a_tot.dag() * a_tot + 0.5 * ws * Sz + 0.5 * ge * (Sp * a_tot + Sm * a_tot.dag()) # 0.5 is normalization factor
+        H = wc * a_tot.dag() * a_tot + 0.5 * ws * Sz + ge * (Sp * a_tot + Sm * a_tot.dag()) # 0.5 is normalization factor
         rho_der -= 1j * commutator(H, rho)
 
         ## Cavity decay
