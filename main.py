@@ -4,10 +4,6 @@
 # There is no input.
 # Written by Xiaotian Xu(Felix), 1st July 2020.
 
-## Testing
-# 1. all frequency units
-# 2. hbar is deleted
-
 ## Import packages
 import numpy as np
 import scipy.constants as sc
@@ -17,71 +13,88 @@ from qutip import *
 from qutip.piqs import *
 
 ## Defination
-n_tls = 12 # the number of twp-level particles
-n_phot = 30 # the number of photons
-Sz = 0.8 * n_tls # initial inversion
+dim_tls = 7e14# # the number of twp-level particles
+dim_lit = int(10) # the dimension of the light field
+num_steps = 10000 # the number of steps will be used in evolution
 Kc = 2 * sc.pi * 0.18 # the cavity mode decay rate (MHz)
-Ks = 2 * sc.pi * 0.11 # the spin dephasing rate (MHz)
-ge = 2 * sc.pi * 1.1 # the ensemble spin-photon coupling strength (MHz)
-wc = 1.45 * 1e3 # the cavity frequency (MHz)
-ws = 1.45 * 1e3 # the spin traqnsition frequency (MHz)
+Ks = 6 * sc.pi * 0.11 # the spin dephasing rate (MHz)
+ge = 2 * sc.pi * 1.1 # the single spin-photon coupling strength (MHz)
+wc = 2 * sc.pi * 1.45e3 # the cavity frequency (MHz)
+ws = 2 * sc.pi * 1.45e3 # the spin traqnsition frequency (MHz)
+gs = 2 * sc.pi * 0.042e-6
 
-## Define the collective spin operators
-N = n_tls
-[jx, jy, jz] = jspin(N) 
-jp = jspin(N, "+")
-jm = jp.dag()
-jp_tilde = jp / np.sqrt(N) # normalized raising operator
-jm_tilde = jm / np.sqrt(N) # normalized lowering operator
+## Initialization
+step_index = 0
+n_phot = [] # the number of pjotons in the light field
+spin_phot = []
+spin_spin = []
+inversion = []
 
-## TLS parameters
-system = Dicke(N)
-system.hamiltonian = 0.5 * ws * jz # the Hamiltonian of two-level system
-system.dephasing = Ks
-D_tls = system.liouvillian() # the liouvillian of spin dephasing
-
-## Interation parameters
-a = destroy(n_phot)
-h_int = ge * (tensor(jp_tilde, a) + tensor(jm_tilde, a.dag())) # the interaction Hamiltonian
-
-## photon parameters
-c_ops_phot = [np.sqrt(Kc) * a]
-D_phot = liouvillian(wc * a.dag() * a, c_ops_phot)
-
-## Indentity super-operators
-nds = num_dicke_states(n_tls) # the number of dicke states
-id_tls = to_super(qeye(nds))
-id_phot = to_super(qeye(n_phot))
-
-## Define the total liouvillian
-D_int = -1j* spre(h_int) + 1j* spost(h_int)
-D_tot = D_int + super_tensor(id_tls, D_phot) + super_tensor(D_tls, id_phot)
+## the initialization quantum state
+psi_tls = (np.sqrt(0.9) * basis(2, 0) + np.sqrt(0.1) * basis(2, 1)) * np.sqrt(dim_tls)
+rho_tls = ket2dm(psi_tls) # density matrix of a two-level system
+rho_phot = fock_dm(dim_lit) # density matrix of the light field
+rho = tensor(rho_tls, rho_phot)
 
 ## Define operator in the total space
-nphot_tot = tensor(qeye(nds), a.dag()*a)
+a = destroy(dim_lit)
+a_tot = tensor(qeye(2), a)
+Sz = tensor(sigmaz(), qeye(dim_lit))
+Sp = tensor(sigmap(), qeye(dim_lit))
+Sm = tensor(sigmam(), qeye(dim_lit))
 
 ## Time evolution
-rho_tls = excited(N)
-rho_phot = ket2dm(basis(n_phot, 0))
-rho0 = tensor(rho_tls, rho_phot)
-t = np.linspace(0, 10, 100)
-result = mesolve(D_tot, rho0, t, [], e_ops = [nphot_tot], options = Options(store_states=True, num_cpus=4))
-rhot_tot = result.states
-nphot_t = result.expect[0]
+t = np.linspace(0, 100, num_steps)
+step_length = t[1] - t[0]
 
-##
-label_size = 20
-rho_ss = steadystate(D_tot)
-nphot_ss = expect(rho_ss, nphot_tot)
+## The RK2 method, which is realized with a for loop
+for step_index in range(num_steps):
+    for step_index2 in range(2):
+
+        ## Procedure
+        print(step_index, '/', num_steps)
+
+        ## Initialization
+        rho_der = 0
+
+        ## The Hamiltonian
+        rho0 = ptrace(rho, 0)
+        N = ((rho0 * sigmaz()).tr()).real
+        H = wc * a_tot.dag() * a_tot + 0.5 * ws * Sz + np.sqrt(N) * gs * (Sp * a_tot + Sm * a_tot.dag()) # 0.5 is normalization factor
+        rho_der -= 1j * commutator(H, rho)
+
+        ## Cavity decay
+        rho_der += Kc * (a_tot * rho * a_tot.dag() - 0.5 * a_tot.dag() * a_tot * rho - 0.5 * rho * a_tot.dag() * a_tot)
+
+        ## Spin dephasing
+        rho_der += Ks * (Sz * rho * Sz.dag() - 0.5 * Sz.dag() * Sz * rho - 0.5 * rho * Sz.dag() * Sz)
+        
+        if step_index2 == 0:
+            rho += rho_der * 0.75 *step_length # Predictor
+            rho_dash = rho - 5/12 * rho_der * step_length
+
+        if step_index2 == 1:
+            rho = rho_dash + 2/3 * rho_der * step_length # Corrector
+
+            ## Calculation
+            rho0 = rho.ptrace(0)
+            rho1 = rho.ptrace(1)
+            n_phot.append(((rho1 * a.dag() * a).tr()).real)
+            spin_phot.append(((rho * tensor(sigmam(), a.dag())).tr()).real)
+            spin_spin.append(((rho0 * sigmap() * sigmam()).tr()).real)
+            inversion.append(((rho0 * sigmaz()).tr()).real)
 
 ## Visualization
-fig3 = plt.figure(3)
-plt.plot(t, nphot_t, 'k-', label='Time evolution')
-plt.plot(t, t*0 + nphot_ss, 'g--', label = 'Steady-state value')
-plt.title(r'Cavity photon population', fontsize = label_size)
-plt.xlabel(r'$t$', fontsize = label_size)
-plt.ylabel(r'$\langle a^\dagger a\rangle(t)$', fontsize = label_size)
-
-plt.legend(fontsize = label_size)
+plt.figure(1)
+plt.plot(t, n_phot)
+plt.title('the number of photons')
+plt.figure(2)
+plt.plot(t, spin_phot)
+plt.title('spin-photon correlation')
+plt.figure(3)
+plt.plot(t, spin_spin)
+plt.title('spin-spin correlation')
+plt.figure(4)
+plt.plot(t, inversion)
+plt.title('inversion')
 plt.show()
-plt.close()
