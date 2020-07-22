@@ -57,7 +57,7 @@ step_length = t[1] - t[0]
 ## The two-level systems
 system = Dicke(1)
 system.hamiltonian = 0.5 * ws * sigmaz()
-system.collective_dephasing = Ks
+system.dephasing = Ks
 #system.collective_emission = gamma
 #system.collective_pumping = gamma
 D_tls = system.liouvillian()
