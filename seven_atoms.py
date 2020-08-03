@@ -114,3 +114,4 @@ plt.figure(5)
 plt.plot(freq_dist)
 plt.title('fft')
 plt.show()
+

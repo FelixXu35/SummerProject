@@ -18,10 +18,11 @@ dim_lit = int(10) # the dimension of the light field
 num_steps = 10000 # the number of steps will be used in evolution
 Kc = 2 * sc.pi * 0.18 # the cavity mode decay rate (MHz)
 Ks = 6 * sc.pi * 0.11 # the spin dephasing rate (MHz)
+gamma = 2 * sc.pi * 0.011 # the spin-lattice relaxation rate (MHz)
 ge = 2 * sc.pi * 1.1 # the single spin-photon coupling strength (MHz)
+gs = 2 * sc.pi * 0.042e-6 # the single spin–photon coupling strength (MHz)
 wc = 2 * sc.pi * 1.45e3 # the cavity frequency (MHz)
 ws = 2 * sc.pi * 1.45e3 # the spin traqnsition frequency (MHz)
-gs = 2 * sc.pi * 0.042e-6
 
 ## Initialization
 step_index = 0
