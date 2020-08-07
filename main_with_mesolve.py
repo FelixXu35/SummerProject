@@ -78,10 +78,8 @@ result = mesolve(D_tot, rho, t, [], e_ops = [tensor(qeye(nds), a.dag() * a), ten
 rho_tot = result.states
 n_phot = result.expect[0] * dim_tls # the number of pjotons in the light field
 spin_phot = -2 * result.expect[1].imag
-spin_spin = result.expect[2]
+#spin_spin = result.expect[2]
 inversion = result.expect[3]
-ima = expect(tensor(qeye(nds), a.dag() * a), rho_tot)
-print(ima)
 
 ## Steady states
 steady_tls = steadystate(D_tot)
@@ -93,7 +91,7 @@ inversion_ss = np.ones(num_steps) * expect(tensor(sigmaz(), qeye(dim_lit)), stea
 freq_dist = abs(fft(n_phot))
 
 J = 0.5 * np.ones(num_steps)
-spin_spin = (J + inversion/2) * (J - inversion/2 + 1/dim_lit)
+spin_spin = (J + inversion/2) * (J - inversion/2 + 1/dim_tls)
 
 ## Visualization
 plt.figure(1)
@@ -113,8 +111,16 @@ plt.plot(t, inversion)
 plt.plot(t, inversion_ss)
 plt.title('inversion')
 plt.figure(5)
-plt.plot(freq_dist)
-plt.title('fft')
-plt.figure(6)
-plt.plot(ima)
+plt.subplot(4, 1, 1)
+plt.plot(t, n_phot, 'k-')
+plt.ylabel('<${a^\dag}a$>')
+plt.subplot(4, 1, 2)
+plt.plot(t, spin_phot, 'k-')
+plt.ylabel('<${a^\dag}{S^-}$>')
+plt.subplot(4, 1, 3)
+plt.plot(t, spin_spin, 'k-')
+plt.ylabel ('<${S^+}{S^-}$>/N')
+plt.subplot(4, 1, 4)
+plt.plot(t, inversion, 'k-')
+plt.ylabel('<${S^z}$>')
 plt.show()

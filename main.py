@@ -14,7 +14,7 @@ from qutip.piqs import *
 
 ## Defination
 dim_tls = 7e14# # the number of twp-level particles
-dim_lit = int(5) # the dimension of the light field
+dim_lit = int(2) # the dimension of the light field
 num_steps = 1000 # the number of steps will be used in evolution
 Kc = 2 * sc.pi * 0.18 # the cavity mode decay rate (MHz)
 Ks = 2 * sc.pi * 0.11 # the spin dephasing rate (MHz)

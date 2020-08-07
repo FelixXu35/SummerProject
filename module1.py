@@ -31,7 +31,7 @@ system.dephasing = Ks
 D_tls = system.liouvillian() 
 
 # Light-matter coupling parameters
-nphot = 15
+nphot = 5
 a = destroy(nphot)
 h_int = ge * (tensor(a, jp) + tensor(a.dag(), jm))
 
@@ -51,7 +51,7 @@ D_tot = super_tensor(D_phot, id_tls) + super_tensor(id_phot, D_tls) + D_int
 # Define operator in the total space
 nphot_tot = tensor(a.dag()*a, qeye(nds))
 
-excited_state = excited(N)
+excited_state = ket2dm(np.sqrt(0.9) * basis(2, 0) + np.sqrt(0.1) * basis(2, 1))
 ground_phot = ket2dm(basis(nphot,0))
 rho0 = tensor(ground_phot, excited_state)
 t = np.linspace(0, 10, 1000)
