@@ -1,6 +1,8 @@
 from qutip import *
 from qutip.piqs import *
+import numpy as np
 
-n_tls = int(70)
-rho = dicke(n_tls, n_tls/2, 0.8 * n_tls/2)
-print(rho)
+jz = jspin(1, 'z')
+jp = jspin(3, "+")
+jm = jp.dag()
+print(jz, sigmaz())

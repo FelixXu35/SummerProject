@@ -14,10 +14,10 @@ from qutip.piqs import *
 
 ## Defination
 dim_tls = 7e14# # the number of twp-level particles
-dim_lit = int(10) # the dimension of the light field
-num_steps = 10000 # the number of steps will be used in evolution
+dim_lit = int(5) # the dimension of the light field
+num_steps = 1000 # the number of steps will be used in evolution
 Kc = 2 * sc.pi * 0.18 # the cavity mode decay rate (MHz)
-Ks = 6 * sc.pi * 0.11 # the spin dephasing rate (MHz)
+Ks = 2 * sc.pi * 0.11 # the spin dephasing rate (MHz)
 gamma = 2 * sc.pi * 0.011 # the spin-lattice relaxation rate (MHz)
 ge = 2 * sc.pi * 1.1 # the single spin-photon coupling strength (MHz)
 gs = 2 * sc.pi * 0.042e-6 # the single spin–photon coupling strength (MHz)
@@ -45,7 +45,7 @@ Sp = tensor(sigmap(), qeye(dim_lit))
 Sm = tensor(sigmam(), qeye(dim_lit))
 
 ## Time evolution
-t = np.linspace(0, 100, num_steps)
+t = np.linspace(0, 10, num_steps)
 step_length = t[1] - t[0]
 
 ## The RK2 method, which is realized with a for loop
@@ -61,21 +61,22 @@ for step_index in range(num_steps):
         ## The Hamiltonian
         rho0 = ptrace(rho, 0)
         N = ((rho0 * sigmaz()).tr()).real
-        H = wc * a_tot.dag() * a_tot + 0.5 * ws * Sz + np.sqrt(N) * gs * (Sp * a_tot + Sm * a_tot.dag()) # 0.5 is normalization factor
+        H = wc * a_tot.dag() * a_tot + 0.5 * ws * Sz + ge * (Sp * a_tot + Sm * a_tot.dag()) # 0.5 is normalization factor
         rho_der -= 1j * commutator(H, rho)
 
         ## Cavity decay
         rho_der += Kc * (a_tot * rho * a_tot.dag() - 0.5 * a_tot.dag() * a_tot * rho - 0.5 * rho * a_tot.dag() * a_tot)
+        #print(rho_der)
 
         ## Spin dephasing
         rho_der += Ks * (Sz * rho * Sz.dag() - 0.5 * Sz.dag() * Sz * rho - 0.5 * rho * Sz.dag() * Sz)
         
         if step_index2 == 0:
-            rho += rho_der * 0.75 *step_length # Predictor
-            rho_dash = rho - 5/12 * rho_der * step_length
+            rho += rho_der * step_length # Predictor
+            rho_dash = rho - 1/2 * rho_der * step_length
 
         if step_index2 == 1:
-            rho = rho_dash + 2/3 * rho_der * step_length # Corrector
+            rho = rho_dash + 1/2 * rho_der * step_length # Corrector
 
             ## Calculation
             rho0 = rho.ptrace(0)
@@ -84,6 +85,11 @@ for step_index in range(num_steps):
             spin_phot.append(((rho * tensor(sigmam(), a.dag())).tr()).real)
             spin_spin.append(((rho0 * sigmap() * sigmam()).tr()).real)
             inversion.append(((rho0 * sigmaz()).tr()).real)
+
+J = 0.5 * np.ones(num_steps)
+para = dim_tls * np.ones(num_steps)
+S = para * inversion + para * J
+spin_spin = S - S * (S - 1) / para
 
 ## Visualization
 plt.figure(1)
