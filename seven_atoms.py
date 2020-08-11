@@ -14,7 +14,7 @@ from qutip import *
 from qutip.piqs import *
 
 ## Defination
-dim_tls = 2# # the number of twp-level particles
+dim_tls = 5# # the number of twp-level particles
 dim_lit = int(2) # the dimension of the light field
 prmt = 1e14
 num_steps = 1000 # the number of steps will be used in evolution
@@ -76,12 +76,27 @@ D_int = -1j* spre(h_int) + 1j* spost(h_int)
 D_tot = D_int + super_tensor(id_tls, D_phot) + super_tensor(D_tls, id_phot)
 
 ## Time evolution
-result = mesolve(D_tot, rho, t, [], e_ops = [tensor(qeye(nds), a.dag() * a), tensor(jm, a.dag()), 
-                                             tensor(jp * jm, qeye(dim_lit)), tensor(jz, qeye(dim_lit))], options = Options(store_states=True, num_cpus=4, nsteps=1e8))
-n_phot = result.expect[0] * prmt # the number of pjotons in the light field
-spin_phot = result.expect[1] * prmt
-spin_spin = result.expect[2]
-inversion = result.expect[3]
+#result = mesolve(D_tot, rho, t, [], e_ops = [tensor(qeye(nds), a.dag() * a), tensor(jm, a.dag()), 
+#                                             tensor(jp * jm, qeye(dim_lit)), tensor(jz, qeye(dim_lit))], options = Options(store_states=True, num_cpus=4, nsteps=1e8))
+#n_phot = result.expect[0] * prmt # the number of pjotons in the light field
+#spin_phot = result.expect[1] * prmt
+#spin_spin = result.expect[2]
+#inversion = result.expect[3]
+
+for index in range(num_steps):
+    ## The interaction
+    n = expect(tensor(qeye(nds), a.dag() * a), rho) * dim_tls
+    h_int = gs * np.sqrt(n) * tensor(sigmax(), a + a.dag()) # without RWA
+    D_int = -1j* spre(h_int) + 1j* spost(h_int)
+    D_tot = D_int + super_tensor(id_tls, D_phot) + super_tensor(D_tls, id_phot)
+    print(index, '/', num_steps)
+    result = mesolve(D_tot, rho, t, [], e_ops = [tensor(qeye(nds), a.dag() * a), tensor(sigmam(), a.dag()), 
+                                                 tensor(sigmap() * sigmam(), qeye(dim_lit)), tensor(sigmaz(), qeye(dim_lit))], options = Options(store_states=True, num_cpus=4, nsteps=1e8))
+    rho = result.states[1]
+    n_phot.append(result.expect[0][0] * dim_tls) # the number of pjotons in the light field
+    spin_phot.append(-2 * result.expect[1][0].imag)
+    #spin_spin = result.expect[2]
+    inversion.append(result.expect[3][0])
 
 ## Steady states
 steady_tls = steadystate(D_tot)

@@ -46,7 +46,7 @@ def maser_coupledeqns(gs,kc,ks,N,gamma,time_span,num,delta):
         return np.array([f0,f1,f2,f3])
     
     # apply the initial conditions at time=0
-    y0=[4.3*(10**3)+0j,0.+0j,0.8+0j,0.+0j]
+    y0=[4.3*(10**3)+0j,0.+0j,0.8+0j,0+0j]
     
     # now solve the differential eqns
     sol=solve_ivp(f,time_span,y0,method='RK45',t_eval=np.linspace(time_span[0]+0j,time_span[1]+0j,num))

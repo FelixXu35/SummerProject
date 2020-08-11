@@ -21,7 +21,7 @@ Kc = 2 * sc.pi * 0.18 # the cavity mode decay rate (0.18 MHz)
 Ks = 2 * sc.pi * 0.11 # the spin dephasing rate (0.11 MHz)
 gamma = 2 * sc.pi * 0.011 # the spin-lattice relaxation rate (0.011 MHz)
 ge = 2 * sc.pi * 1.1 # the single spin-photon coupling strength (1.1 MHz)
-gs = 2 * sc.pi * 0.042e-6 # the single spin–photon coupling strength (0.042e-6 MHz)
+gs = 2 * sc.pi * 0.42e-6 # the single spin–photon coupling strength (0.042e-6 MHz)
 wc = 2 * sc.pi * 1.45e3 # the cavity frequency (1.45e3 MHz)
 ws = 2 * sc.pi * 1.45e3 # the spin traqnsition frequency (1.45e3 MHz)
 

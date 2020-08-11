@@ -15,12 +15,12 @@ Kc = 2 * sc.pi * 0.18 # the cavity mode decay rate (MHz)
 Ks = 2 * sc.pi * 0.11 # the spin dephasing rate (MHz)
 gamma = 2 * sc.pi * 0.011 # the spin-lattice relaxation rate (MHz)
 ge = 2 * sc.pi * 1.1 # the single spin-photon coupling strength (MHz)
-gs = 2 * sc.pi * 0.042e-6 # the single spin–photon coupling strength (MHz)
+gs = 2 * sc.pi * 0.084e-6 # the single spin–photon coupling strength (MHz)
 wc = 2 * sc.pi * 1.45e3 # the cavity frequency (MHz)
 ws = 2 * sc.pi * 1.45e3 # the spin traqnsition frequency (MHz)
 
 # TLS parameters
-n_tls = 1
+n_tls = 5
 N = n_tls
 system = Dicke(N = n_tls)
 [jx, jy, jz] = jspin(N)
@@ -31,7 +31,7 @@ system.dephasing = Ks
 D_tls = system.liouvillian() 
 
 # Light-matter coupling parameters
-nphot = 5
+nphot = 10
 a = destroy(nphot)
 h_int = ge * (tensor(a, jp) + tensor(a.dag(), jm))
 
